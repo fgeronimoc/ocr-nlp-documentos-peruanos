@@ -17,11 +17,9 @@ import matplotlib.pyplot as plt
 import io
 import base64
 
-# --- Descargar recursos NLTK si no existen ---
+# --- Descargar solo stopwords (no requiere punkt) ---
 nltk.download("stopwords", quiet=True)
-nltk.download("punkt", quiet=True)
 from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize, sent_tokenize
 
 STOPWORDS_ES = set(stopwords.words("spanish"))
 
@@ -52,9 +50,11 @@ def limpiar_texto(texto: str) -> str:
 
 
 def tokenizar(texto: str, eliminar_stopwords: bool = True) -> list:
-    """Tokeniza el texto y opcionalmente elimina stopwords."""
-    tokens = word_tokenize(texto.lower())
-    tokens = [t for t in tokens if t.isalpha()]
+    """
+    Tokeniza usando regex — sin dependencias de archivos NLTK externos.
+    Captura palabras con letras (incluyendo ñ y vocales acentuadas).
+    """
+    tokens = re.findall(r"\b[a-záéíóúüñ]{2,}\b", texto.lower())
     if eliminar_stopwords:
         tokens = [t for t in tokens if t not in STOPWORDS_ES]
     return tokens
