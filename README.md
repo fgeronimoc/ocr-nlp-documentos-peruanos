@@ -94,29 +94,3 @@ cd app
 streamlit run app.py
 ```
 
----
-
-## Entregables
-
-- [x] Repositorio GitHub
-- [ ] Notebook Google Colab (`notebook/OCR_NLP_Documentos_Peruanos.ipynb`)
-- [ ] Aplicación Streamlit desplegada
-- [ ] Código fuente completo
-- [ ] Informe breve (`informe/Informe_Proyecto.docx`)
-- [ ] Exposición grupal
-
----
-
-## Rúbrica (Total: 20 pts)
-
-| Criterio                        | Puntaje |
-|---------------------------------|---------|
-| Contexto peruano / problema     | 2       |
-| Recolección de datos            | 2       |
-| Preprocesamiento de imágenes    | 3       |
-| Implementación OCR              | 3       |
-| Limpieza y preprocesamiento NLP | 3       |
-| Aplicación de NLP               | 4       |
-| Desarrollo app Streamlit        | 2       |
-| Presentación y exposición       | 1       |
-| **TOTAL**                       | **20**  |
