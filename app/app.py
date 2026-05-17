@@ -28,8 +28,7 @@ st.set_page_config(
 
 st.title("🇵🇪 OCR + NLP para Documentos Peruanos")
 st.markdown(
-    "Extrae texto automáticamente desde imágenes o documentos "
-    "y aplica análisis de lenguaje natural."
+    "Extrae texto automáticamente desde imágenes y aplica análisis de lenguaje natural."
 )
 
 # ============================================================
@@ -74,7 +73,7 @@ with st.sidebar:
 st.header("📤 Cargar Documento")
 
 archivo = st.file_uploader(
-    "Sube una imagen o PDF escaneado",
+    "Sube una imagen del documento",
     type=["jpg", "jpeg", "png"],
     help="Formatos soportados: JPG, PNG"
 )
@@ -113,7 +112,7 @@ if archivo is not None:
     if st.button("🔍 Extraer texto y analizar", type="primary"):
 
         # --- OCR ---
-        with st.spinner("Extrayendo texto con EasyOCR..."):
+        with st.spinner("Extrayendo texto con OCR..."):
             try:
                 arr = np.array(Image.open(io.BytesIO(contenido)).convert("RGB"))
                 if aplicar_preprocesamiento:
@@ -219,11 +218,11 @@ if archivo is not None:
         )
 
 else:
-    st.info("👆 Sube una imagen o PDF para comenzar el análisis.")
+    st.info("👆 Sube una imagen para comenzar el análisis.")
     st.markdown("""
     **Ejemplos de documentos que puedes usar:**
     - 📄 Foto de una boleta de compra peruana
-    - 🧾 Factura electrónica escaneada
-    - 📰 Recorte de periódico o noticia impresa
-    - 📋 Formulario o comunicado institucional
+    - 🧾 Captura de factura electrónica
+    - 📰 Foto de recorte de periódico o noticia impresa
+    - 📋 Foto de formulario o comunicado institucional
     """)
