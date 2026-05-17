@@ -10,7 +10,6 @@ y registrarla en PIPELINES.
 import re
 import unicodedata
 import nltk
-import spacy
 from collections import Counter
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
@@ -22,12 +21,6 @@ nltk.download("stopwords", quiet=True)
 from nltk.corpus import stopwords
 
 STOPWORDS_ES = set(stopwords.words("spanish"))
-
-# --- Cargar modelo spaCy español ---
-try:
-    nlp_model = spacy.load("es_core_news_sm")
-except OSError:
-    nlp_model = None
 
 
 # ============================================================
