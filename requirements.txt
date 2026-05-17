@@ -7,4 +7,3 @@ nltk
 wordcloud
 matplotlib
 pandas
-pdf2image

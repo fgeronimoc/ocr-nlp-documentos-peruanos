@@ -13,7 +13,7 @@ import io
 from PIL import Image
 
 from preprocessor import preprocesar_completo
-from ocr_engine import extraer_texto, extraer_texto_con_confianza, extraer_desde_pdf_bytes
+from ocr_engine import extraer_texto, extraer_texto_con_confianza
 from nlp_pipeline import analizar, limpiar_texto, PIPELINES
 
 # ============================================================
@@ -75,8 +75,8 @@ st.header("📤 Cargar Documento")
 
 archivo = st.file_uploader(
     "Sube una imagen o PDF escaneado",
-    type=["jpg", "jpeg", "png", "pdf"],
-    help="Formatos soportados: JPG, PNG, PDF"
+    type=["jpg", "jpeg", "png"],
+    help="Formatos soportados: JPG, PNG"
 )
 
 if archivo is not None:
@@ -91,25 +91,20 @@ if archivo is not None:
     # ----------------------------------------------------------
     with col1:
         st.subheader("Imagen original")
-        if extension == "pdf":
-            st.info("📄 Archivo PDF cargado.")
-        else:
-            img_original = Image.open(io.BytesIO(contenido))
-            st.image(img_original, use_column_width=True)
+        img_original = Image.open(io.BytesIO(contenido))
+        st.image(img_original, use_column_width=True)
 
     # ----------------------------------------------------------
     # COLUMNA 2: Imagen preprocesada
     # ----------------------------------------------------------
     with col2:
         st.subheader("Imagen preprocesada")
-        if extension != "pdf" and aplicar_preprocesamiento:
+        if aplicar_preprocesamiento:
             arr = np.array(Image.open(io.BytesIO(contenido)).convert("RGB"))
             img_proc = preprocesar_completo(arr)
             st.image(img_proc, use_column_width=True, clamp=True)
-        elif extension != "pdf":
-            st.image(Image.open(io.BytesIO(contenido)), use_column_width=True)
         else:
-            st.info("El preprocesamiento se aplica internamente para PDFs.")
+            st.image(Image.open(io.BytesIO(contenido)), use_column_width=True)
 
     # ----------------------------------------------------------
     # BOTÓN: Procesar
@@ -120,13 +115,10 @@ if archivo is not None:
         # --- OCR ---
         with st.spinner("Extrayendo texto con EasyOCR..."):
             try:
-                if extension == "pdf":
-                    texto_crudo = extraer_desde_pdf_bytes(contenido)
-                else:
-                    arr = np.array(Image.open(io.BytesIO(contenido)).convert("RGB"))
-                    if aplicar_preprocesamiento:
-                        arr = preprocesar_completo(arr)
-                    texto_crudo = extraer_texto_con_confianza(arr, umbral=umbral_confianza)
+                arr = np.array(Image.open(io.BytesIO(contenido)).convert("RGB"))
+                if aplicar_preprocesamiento:
+                    arr = preprocesar_completo(arr)
+                texto_crudo = extraer_texto_con_confianza(arr, umbral=umbral_confianza)
             except Exception as e:
                 st.error(f"Error en OCR: {e}")
                 st.stop()
