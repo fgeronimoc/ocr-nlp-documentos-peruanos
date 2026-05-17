@@ -11,10 +11,15 @@ import re
 import unicodedata
 import nltk
 from collections import Counter
-from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import io
 import base64
+
+try:
+    from wordcloud import WordCloud
+    WORDCLOUD_DISPONIBLE = True
+except ImportError:
+    WORDCLOUD_DISPONIBLE = False
 
 # --- Descargar solo stopwords (no requiere punkt) ---
 nltk.download("stopwords", quiet=True)
@@ -169,11 +174,15 @@ def analizar_generico(texto: str) -> dict:
 # NUBE DE PALABRAS
 # ============================================================
 
-def generar_wordcloud(texto: str) -> str | None:
+def generar_wordcloud(texto: str):
     """
     Genera una nube de palabras y la retorna como
     imagen base64 para mostrar en Streamlit.
+    Retorna None si wordcloud no está instalado.
     """
+    if not WORDCLOUD_DISPONIBLE:
+        return None
+
     tokens = tokenizar(texto)
     if not tokens:
         return None

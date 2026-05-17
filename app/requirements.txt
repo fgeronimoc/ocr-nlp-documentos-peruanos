@@ -1,9 +1,7 @@
 streamlit
 pytesseract
-opencv-python-headless
 Pillow
 numpy
 nltk
-wordcloud
 matplotlib
 pandas
