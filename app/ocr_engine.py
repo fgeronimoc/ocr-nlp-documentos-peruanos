@@ -1,97 +1,60 @@
 """
 ocr_engine.py
 -------------
-Módulo de extracción de texto usando EasyOCR.
-Soporta imágenes JPG, PNG y páginas de PDF.
+Módulo de extracción de texto usando pytesseract.
+Más liviano que EasyOCR, ideal para despliegue en la nube.
 """
 
-import easyocr
+import pytesseract
 import numpy as np
 from PIL import Image
 import io
 
 
-# Inicializar lector una sola vez (es costoso en memoria)
-# Idiomas: español + inglés (para capturar términos técnicos)
-_reader = None
-
-
-def obtener_lector():
-    """Carga el lector EasyOCR (singleton para no recargar en cada uso)."""
-    global _reader
-    if _reader is None:
-        _reader = easyocr.Reader(["es", "en"], gpu=False)
-    return _reader
-
-
-def extraer_texto(imagen: np.ndarray, detalle: bool = False) -> str:
+def extraer_texto(imagen: np.ndarray) -> str:
     """
-    Extrae texto de una imagen numpy array ya preprocesada.
-
-    Parámetros:
-        imagen  : array numpy (gris o RGB)
-        detalle : si True, retorna lista con (bbox, texto, confianza)
-
-    Retorna:
-        str con el texto completo extraído
+    Extrae texto de una imagen numpy array.
+    Usa configuración optimizada para español.
     """
-    reader = obtener_lector()
-    resultados = reader.readtext(imagen)
-
-    if detalle:
-        return resultados
-
-    # Unir solo el texto detectado
-    texto = " ".join([res[1] for res in resultados])
-    return texto
+    pil_img = Image.fromarray(imagen)
+    texto = pytesseract.image_to_string(
+        pil_img,
+        lang="spa",
+        config="--psm 3"   # detección automática de layout
+    )
+    return texto.strip()
 
 
-def extraer_texto_con_confianza(imagen: np.ndarray, umbral: float = 0.3) -> str:
+def extraer_texto_con_confianza(imagen: np.ndarray, umbral: float = 30) -> str:
     """
-    Extrae texto filtrando por un umbral mínimo de confianza.
-
-    Parámetros:
-        imagen  : array numpy
-        umbral  : confianza mínima (0 a 1), default 0.3
-
-    Retorna:
-        str con el texto de alta confianza
+    Extrae texto filtrando por umbral de confianza (0-100).
+    Retorna solo el texto con confianza >= umbral.
     """
-    reader = obtener_lector()
-    resultados = reader.readtext(imagen)
+    pil_img = Image.fromarray(imagen)
+    datos = pytesseract.image_to_data(
+        pil_img,
+        lang="spa",
+        config="--psm 3",
+        output_type=pytesseract.Output.DICT
+    )
 
-    texto_filtrado = [
-        res[1]
-        for res in resultados
-        if res[2] >= umbral
-    ]
+    texto_filtrado = []
+    for i, palabra in enumerate(datos["text"]):
+        try:
+            confianza = int(datos["conf"][i])
+        except (ValueError, TypeError):
+            continue
+        if confianza >= umbral and palabra.strip():
+            texto_filtrado.append(palabra.strip())
 
     return " ".join(texto_filtrado)
 
 
-def extraer_desde_bytes(imagen_bytes: bytes) -> str:
+def extraer_desde_bytes(imagen_bytes: bytes, umbral: float = 30) -> str:
     """
     Extrae texto directamente desde bytes de imagen
     (compatible con st.file_uploader de Streamlit).
     """
     pil_img = Image.open(io.BytesIO(imagen_bytes)).convert("RGB")
     arr = np.array(pil_img)
-    return extraer_texto(arr)
-
-
-def extraer_desde_pdf_bytes(pdf_bytes: bytes) -> str:
-    """
-    Extrae texto de un PDF (página por página).
-    Requiere pdf2image y poppler instalados.
-    """
-    from pdf2image import convert_from_bytes
-
-    paginas = convert_from_bytes(pdf_bytes)
-    texto_total = []
-
-    for i, pagina in enumerate(paginas):
-        arr = np.array(pagina.convert("RGB"))
-        texto_pagina = extraer_texto(arr)
-        texto_total.append(f"--- Página {i+1} ---\n{texto_pagina}")
-
-    return "\n\n".join(texto_total)
+    return extraer_texto_con_confianza(arr, umbral=umbral)

@@ -47,11 +47,11 @@ with st.sidebar:
 
     umbral_confianza = st.slider(
         "Umbral de confianza OCR",
-        min_value=0.0,
-        max_value=1.0,
-        value=0.3,
-        step=0.05,
-        help="Filtra texto con baja confianza. 0 = incluir todo."
+        min_value=0,
+        max_value=100,
+        value=30,
+        step=5,
+        help="Filtra texto con baja confianza (0-100). 0 = incluir todo, 100 = solo texto muy seguro."
     )
 
     aplicar_preprocesamiento = st.checkbox(
