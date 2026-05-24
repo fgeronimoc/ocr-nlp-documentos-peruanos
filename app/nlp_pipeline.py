@@ -92,7 +92,8 @@ def analizar_boleta(texto: str) -> dict:
     resultado["entidades"]["RUC"] = ruc if ruc else ["No detectado"]
 
     # --- Extraer montos con contexto (IGV, subtotal, total) ---
-    PATRON_MONTO = r"\d{1,3}(?:[.,]\d{3})*[.,]\d{2}"
+    # Acepta: 1,661.02 / 1.661,02 / 1661.02 / 298.98 / 1960,00
+    PATRON_MONTO = r"\d{1,3}(?:[.,]\d{3})*[.,]\d{2}|\d{2,}[.,]\d{2}"
 
     def extraer_monto_contextual(patron_contexto, texto, ventana=80):
         """Busca un monto numérico dentro de 'ventana' caracteres después de la palabra clave."""
@@ -105,11 +106,11 @@ def analizar_boleta(texto: str) -> dict:
         return None
 
     # Subtotal / Gravada (precio sin IGV)
-    subtotal = extraer_monto_contextual(r"gravad[ao]|subtotal|valor\s*venta", texto)
+    subtotal = extraer_monto_contextual(r"gravad[ao]|subtotal|valor\s*venta", texto, ventana=120)
     # IGV
-    igv = extraer_monto_contextual(r"i\.?\s*g\.?\s*v\.?|igv|impuesto\s*gral", texto)
+    igv = extraer_monto_contextual(r"i\.?\s*g\.?\s*v\.?|igv|impuesto\s*gral", texto, ventana=120)
     # Total — también busca al revés: monto seguido de la palabra total
-    total = extraer_monto_contextual(r"total(?!\s*gravad|\s*venta)", texto)
+    total = extraer_monto_contextual(r"total(?!\s*gravad|\s*venta)", texto, ventana=120)
     if not total:
         # Buscar patrón: monto seguido de "total" (algunos formatos invierten el orden)
         match_inv = re.search(PATRON_MONTO + r"\s{0,10}(?:soles|sol)?\s{0,5}(?=total)", texto, re.IGNORECASE)
@@ -118,7 +119,7 @@ def analizar_boleta(texto: str) -> dict:
 
     # Si no encuentra con contexto, busca todos los montos como respaldo
     montos_genericos = re.findall(
-        r"(?:s[\s/.]?\s?)?\d{1,3}(?:[.,]\d{3})*[.,]\d{2}",
+        r"(?:s/\.?\s*)?(?:\d{1,3}(?:[.,]\d{3})*[.,]\d{2}|\d{2,}[.,]\d{2})",
         texto, re.IGNORECASE
     )
 
