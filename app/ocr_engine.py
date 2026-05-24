@@ -77,34 +77,52 @@ def extraer_texto(imagen: np.ndarray) -> str:
     return texto.strip()
 
 
-def extraer_texto_con_confianza(imagen: np.ndarray, umbral: float = 30, deskew: bool = False) -> str:
-    """
-    Extrae texto filtrando por umbral de confianza (0-100).
-    Aplica corrección automática de ángulo solo si deskew=True.
-    Retorna solo el texto con confianza >= umbral.
-    """
-    pil_img = Image.fromarray(imagen)
-    if deskew:
-        pil_img = auto_rotar(pil_img)
-        pil_img = _deskew_fino(pil_img)
-
+def _ocr_con_psm(pil_img: Image.Image, psm: int, umbral: float) -> str:
+    """Ejecuta OCR con un PSM específico y retorna texto filtrado por confianza."""
     datos = pytesseract.image_to_data(
         pil_img,
         lang="spa",
-        config="--psm 3",
+        config=f"--psm {psm}",
         output_type=pytesseract.Output.DICT
     )
-
-    texto_filtrado = []
+    palabras = []
     for i, palabra in enumerate(datos["text"]):
         try:
             confianza = int(datos["conf"][i])
         except (ValueError, TypeError):
             continue
         if confianza >= umbral and palabra.strip():
-            texto_filtrado.append(palabra.strip())
+            palabras.append(palabra.strip())
+    return " ".join(palabras)
 
-    return " ".join(texto_filtrado)
+
+def extraer_texto_con_confianza(imagen: np.ndarray, umbral: float = 30, deskew: bool = False) -> str:
+    """
+    Extrae texto filtrando por umbral de confianza (0-100).
+    Prueba múltiples modos PSM y elige el que extrae más texto.
+    Aplica corrección de ángulo solo si deskew=True.
+    """
+    pil_img = Image.fromarray(imagen)
+    if deskew:
+        pil_img = auto_rotar(pil_img)
+        pil_img = _deskew_fino(pil_img)
+
+    # Probar PSM 3 (auto), PSM 6 (bloque uniforme), PSM 11 (texto disperso)
+    # y quedarse con el resultado más largo (más texto extraído)
+    resultados = {}
+    for psm in [3, 6, 11]:
+        try:
+            texto = _ocr_con_psm(pil_img, psm, umbral)
+            resultados[psm] = texto
+        except Exception:
+            continue
+
+    if not resultados:
+        return ""
+
+    # Elegir el resultado con más palabras
+    mejor = max(resultados.values(), key=lambda t: len(t.split()))
+    return mejor
 
 
 def extraer_desde_bytes(imagen_bytes: bytes, umbral: float = 30) -> str:

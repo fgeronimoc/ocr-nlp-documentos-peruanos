@@ -82,9 +82,14 @@ def analizar_boleta(texto: str) -> dict:
         "wordcloud_base64": None
     }
 
-    # --- Extraer RUC (11 dígitos) ---
-    ruc = re.findall(r"\b\d{11}\b", texto)
-    resultado["entidades"]["RUC"] = list(set(ruc)) if ruc else ["No detectado"]
+    # --- Extraer RUC (11 dígitos, tolerante a espacios por OCR) ---
+    # Busca secuencias de 11 dígitos, con o sin prefijo RUC/R.U.C.
+    ruc_raw = re.findall(r"(?:r\.?u\.?c\.?[\s:]*)?(\d[\s]{0,2}\d[\s]{0,2}\d[\s]{0,2}\d[\s]{0,2}\d[\s]{0,2}\d[\s]{0,2}\d[\s]{0,2}\d[\s]{0,2}\d[\s]{0,2}\d[\s]{0,2}\d)", texto, re.IGNORECASE)
+    ruc = [re.sub(r"\s", "", r) for r in ruc_raw if len(re.sub(r"\s", "", r)) == 11]
+    # También buscar 11 dígitos directos
+    ruc += re.findall(r"\b\d{11}\b", texto)
+    ruc = list(set(ruc))
+    resultado["entidades"]["RUC"] = ruc if ruc else ["No detectado"]
 
     # --- Extraer montos con contexto (IGV, subtotal, total) ---
     def extraer_monto_contextual(patron_contexto, texto):
@@ -113,16 +118,22 @@ def analizar_boleta(texto: str) -> dict:
     resultado["entidades"]["Total"] = total if total else "No detectado"
     resultado["entidades"]["Todos los montos"] = montos_genericos if montos_genericos else ["No detectado"]
 
-    # --- Extraer fechas ---
+    # --- Extraer fechas (múltiples formatos) ---
     fechas = re.findall(
-        r"\b(\d{2}[/-]\d{2}[/-]\d{2,4}|\d{1,2}\s+de\s+\w+\s+de\s+\d{4})\b",
-        texto,
-        re.IGNORECASE
+        r"\b(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4}"
+        r"|\d{1,2}\s+de\s+\w+\s+de\s+\d{4}"
+        r"|\d{4}[/\-\.]\d{1,2}[/\-\.]\d{1,2})\b",
+        texto, re.IGNORECASE
     )
     resultado["entidades"]["Fechas"] = fechas if fechas else ["No detectada"]
 
-    # --- Extraer serie de comprobante (B001, F001, etc.) ---
-    serie = re.findall(r"\b[BFbf]\d{3}-\d+\b", texto)
+    # --- Extraer serie de comprobante ---
+    # Formatos: B001-000567, F003-000282, 001-000567, N° 001-000567
+    serie = re.findall(
+        r"\b(?:[BFbf]\d{3}|\d{3})\s*[-–]\s*\d{4,}\b"
+        r"|[Nn][°º\.]\s*\d{3}\s*[-–]\s*\d+",
+        texto
+    )
     resultado["entidades"]["Serie/Número"] = serie if serie else ["No detectada"]
 
     # --- Palabras frecuentes ---
