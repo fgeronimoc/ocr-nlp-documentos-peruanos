@@ -99,30 +99,38 @@ def _ocr_con_psm(pil_img: Image.Image, psm: int, umbral: float) -> str:
 def extraer_texto_con_confianza(imagen: np.ndarray, umbral: float = 30, deskew: bool = False) -> str:
     """
     Extrae texto filtrando por umbral de confianza (0-100).
-    Prueba múltiples modos PSM y elige el que extrae más texto.
+    Combina resultados con y sin preprocesamiento para maximizar extracción.
     Aplica corrección de ángulo solo si deskew=True.
     """
-    pil_img = Image.fromarray(imagen)
+    from preprocessor import preprocesar_completo
+
+    pil_img_original = Image.fromarray(imagen)
     if deskew:
-        pil_img = auto_rotar(pil_img)
-        pil_img = _deskew_fino(pil_img)
+        pil_img_original = auto_rotar(pil_img_original)
+        pil_img_original = _deskew_fino(pil_img_original)
 
-    # Probar PSM 3 (auto), PSM 6 (bloque uniforme), PSM 11 (texto disperso)
-    # y quedarse con el resultado más largo (más texto extraído)
-    resultados = {}
-    for psm in [3, 6, 11]:
-        try:
-            texto = _ocr_con_psm(pil_img, psm, umbral)
-            resultados[psm] = texto
-        except Exception:
-            continue
+    # Preprocesar también para tener segunda versión
+    try:
+        arr_proc = preprocesar_completo(np.array(pil_img_original))
+        pil_img_proc = Image.fromarray(arr_proc) if arr_proc.dtype == np.uint8 else Image.fromarray(arr_proc.astype(np.uint8))
+    except Exception:
+        pil_img_proc = pil_img_original
 
-    if not resultados:
+    textos = []
+    for pil_img in [pil_img_original, pil_img_proc]:
+        for psm in [3, 6, 11]:
+            try:
+                texto = _ocr_con_psm(pil_img, psm, umbral)
+                if texto:
+                    textos.append(texto)
+            except Exception:
+                continue
+
+    if not textos:
         return ""
 
-    # Elegir el resultado con más palabras
-    mejor = max(resultados.values(), key=lambda t: len(t.split()))
-    return mejor
+    # Retornar el texto más largo (mayor cantidad de información extraída)
+    return max(textos, key=lambda t: len(t.split()))
 
 
 def extraer_desde_bytes(imagen_bytes: bytes, umbral: float = 30) -> str:
