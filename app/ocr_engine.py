@@ -77,15 +77,16 @@ def extraer_texto(imagen: np.ndarray) -> str:
     return texto.strip()
 
 
-def extraer_texto_con_confianza(imagen: np.ndarray, umbral: float = 30) -> str:
+def extraer_texto_con_confianza(imagen: np.ndarray, umbral: float = 30, deskew: bool = False) -> str:
     """
     Extrae texto filtrando por umbral de confianza (0-100).
-    Aplica corrección automática de ángulo antes del OCR.
+    Aplica corrección automática de ángulo solo si deskew=True.
     Retorna solo el texto con confianza >= umbral.
     """
     pil_img = Image.fromarray(imagen)
-    pil_img = auto_rotar(pil_img)
-    pil_img = _deskew_fino(pil_img)
+    if deskew:
+        pil_img = auto_rotar(pil_img)
+        pil_img = _deskew_fino(pil_img)
 
     datos = pytesseract.image_to_data(
         pil_img,

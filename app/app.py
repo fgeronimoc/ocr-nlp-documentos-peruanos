@@ -117,7 +117,7 @@ if archivo is not None:
                 arr = np.array(Image.open(io.BytesIO(contenido)).convert("RGB"))
                 if aplicar_preprocesamiento:
                     arr = preprocesar_completo(arr)
-                texto_crudo = extraer_texto_con_confianza(arr, umbral=umbral_confianza)
+                texto_crudo = extraer_texto_con_confianza(arr, umbral=umbral_confianza, deskew=aplicar_preprocesamiento)
             except Exception as e:
                 st.error(f"Error en OCR: {e}")
                 st.stop()
