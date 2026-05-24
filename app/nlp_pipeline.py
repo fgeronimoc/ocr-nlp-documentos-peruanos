@@ -95,14 +95,22 @@ def analizar_boleta(texto: str) -> dict:
     # Acepta: 1,661.02 / 1.661,02 / 1661.02 / 298.98 / 1960,00
     PATRON_MONTO = r"\d{1,3}(?:[.,]\d{3})*[.,]\d{2}|\d{2,}[.,]\d{2}"
 
-    def extraer_monto_contextual(patron_contexto, texto, ventana=80):
-        """Busca un monto numérico dentro de 'ventana' caracteres después de la palabra clave."""
+    def extraer_monto_contextual(patron_contexto, texto, ventana=120):
+        """Busca un monto numérico dentro de 'ventana' caracteres después de la palabra clave.
+        Si no encuentra decimal explícito, interpreta últimos 2 dígitos como centavos."""
         match_kw = re.search(patron_contexto, texto, re.IGNORECASE)
         if match_kw:
             fragmento = texto[match_kw.start(): match_kw.start() + ventana]
+            # Intento 1: número con decimal explícito (formato correcto)
             match_m = re.search(PATRON_MONTO, fragmento)
             if match_m:
                 return match_m.group(0)
+            # Intento 2: OCR omitió el decimal — número de 4-7 dígitos seguidos
+            match_m2 = re.search(r"\b(\d{4,7})\b", fragmento)
+            if match_m2:
+                raw = match_m2.group(1)
+                # Insertar punto decimal antes de los últimos 2 dígitos
+                return f"{raw[:-2]}.{raw[-2:]} (aprox.)"
         return None
 
     # Subtotal / Gravada (precio sin IGV)
