@@ -86,13 +86,32 @@ def analizar_boleta(texto: str) -> dict:
     ruc = re.findall(r"\b\d{11}\b", texto)
     resultado["entidades"]["RUC"] = list(set(ruc)) if ruc else ["No detectado"]
 
-    # --- Extraer montos en soles (S/) --- patrón flexible para texto OCR
-    montos = re.findall(
+    # --- Extraer montos con contexto (IGV, subtotal, total) ---
+    def extraer_monto_contextual(patron_contexto, texto):
+        """Busca un monto numérico cerca de una palabra clave."""
+        patron = patron_contexto + r"[:\s]*s?[/.]?\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})"
+        match = re.search(patron, texto, re.IGNORECASE)
+        if match:
+            return match.group(1)
+        return None
+
+    # Subtotal / Gravada (precio sin IGV)
+    subtotal = extraer_monto_contextual(r"(?:gravad[ao]|subtotal|valor\s+venta)", texto)
+    # IGV
+    igv = extraer_monto_contextual(r"i\.?g\.?v\.?|impuesto", texto)
+    # Total
+    total = extraer_monto_contextual(r"total(?!\s+gravad)", texto)
+
+    # Si no encuentra con contexto, busca todos los montos como respaldo
+    montos_genericos = re.findall(
         r"(?:s[\s/.]?\s?)?\d{1,3}(?:[.,]\d{3})*[.,]\d{2}",
-        texto,
-        re.IGNORECASE
+        texto, re.IGNORECASE
     )
-    resultado["entidades"]["Montos (S/)"] = montos if montos else ["No detectado"]
+
+    resultado["entidades"]["Subtotal (sin IGV)"] = subtotal if subtotal else "No detectado"
+    resultado["entidades"]["IGV (18%)"] = igv if igv else "No detectado"
+    resultado["entidades"]["Total"] = total if total else "No detectado"
+    resultado["entidades"]["Todos los montos"] = montos_genericos if montos_genericos else ["No detectado"]
 
     # --- Extraer fechas ---
     fechas = re.findall(
